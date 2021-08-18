@@ -1,33 +1,20 @@
 package domain
 
-import "errors"
+import (
+	"time"
+)
 
-type Message interface {
-	Content() string
-	Destination() string
-	Populate() error
-	Type() int
-}
+type MessageType int
 
-type ChatMessage struct {
-	//type [join, send, leave]
-	//time
-	//destination room
-	//content [destination room (for join  or leave), message text]
-}
+const (
+	join MessageType = iota
+	leave
+	send
+)
 
-func (m *ChatMessage) Content() string {
-	return "not implemented"
-}
-
-func (m *ChatMessage) Destination() string {
-	return "not implemented"
-}
-
-func (m *ChatMessage) Populate() error {
-	return errors.New("not implemented")
-}
-
-func (m *ChatMessage) Type() int {
-	return -1
+type Message struct {
+	Content     string
+	Destination string
+	Time        time.Time
+	Type        MessageType
 }

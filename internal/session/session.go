@@ -40,11 +40,22 @@ func (s *Session) reader() {
 			log.Println("Session is stopped")
 			return
 		default:
+			// will I lost previous unread messages? when it will be unread?
+			// todo find answers
 			msgType, msg, err := s.conn.ReadMessage()
 			if err != nil {
 				log.Println(err)
 				return
 			}
+
+			// msgType should be binary type, since we will use serialized chat-message
+			// read message
+			// find type
+			// find room_id
+			// use hub to find or create room
+			// fill content to the room
+
+			// s.hub.AddMessage()
 
 			// todo: if got "close message", use s.Stop()
 
