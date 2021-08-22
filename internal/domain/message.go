@@ -4,17 +4,16 @@ import (
 	"time"
 )
 
-type MessageType int
-
 const (
-	join MessageType = iota
-	leave
-	send
+	Join int = iota
+	Leave
+	Send
 )
 
 type Message struct {
-	Content     string
-	Destination string
-	Time        time.Time
-	Type        MessageType
+	ClientID string
+	Content  string    `json:"content"`
+	Room     string    `json:"room"`
+	Time     time.Time `json:"time"`
+	Type     int       `json:"type"`
 }

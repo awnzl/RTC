@@ -7,3 +7,9 @@
     "content": "some string"
 }
 ```
+&nbsp;
+
+**message type**  
+0 - join  
+1 - leave  
+2 - send  
