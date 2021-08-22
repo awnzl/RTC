@@ -18,11 +18,12 @@ type Session interface {
 }
 
 type ChatSession struct {
-	id   string
-	conn *websocket.Conn
-	hub  *hub.Hub
-	stop chan struct{}
-	send chan domain.Message // register this as subscriber's incoming channel
+	id         string
+	activeRoom string
+	conn       *websocket.Conn
+	hub        *hub.Hub
+	stop       chan struct{}
+	send       chan domain.Message // register this as subscriber's incoming channel
 }
 
 func NewSession(conn *websocket.Conn, h *hub.Hub) Session {
@@ -30,8 +31,8 @@ func NewSession(conn *websocket.Conn, h *hub.Hub) Session {
 		id:   uuid.New().String(),
 		conn: conn,
 		hub:  h,
-		stop: make(chan struct{}), //todo: were I use this?
 		send: make(chan domain.Message),
+		stop: make(chan struct{}), //todo: were I use this?
 	}
 
 	return s
@@ -48,16 +49,7 @@ func (s *ChatSession) Run() {
 
 func (s *ChatSession) Stop() {
 	close(s.stop)
-	// close(s.send)
 	s.conn.Close()
-}
-
-// todo: remove struct
-type msgtmp struct {
-	Type    int    `json:"type"`
-	Time    string `json:"time"`
-	Room    string `json:"room"`
-	Content string `json:"content"`
 }
 
 func (s *ChatSession) reader() {
@@ -66,9 +58,8 @@ func (s *ChatSession) reader() {
 		case <-s.stop:
 			log.Println("Session is stopped")
 			return
+
 		default:
-			// will I lost previous unread messages? when it will be unread?
-			// todo find answers
 			wsMsgType, bts, err := s.conn.ReadMessage()
 			if err != nil {
 				log.Println(err)
@@ -86,24 +77,7 @@ func (s *ChatSession) reader() {
 				continue
 			}
 
-			switch msg.Type {
-			case domain.Join:
-				log.Println("[session] reader: join", msg.Room)
-				s.hub.JoinRoom(s.id, msg.Room, s.send)
-				// find or create room, join it, send message "Client Name joined"
-			case domain.Leave:
-				log.Println("[session] reader: leave")
-				s.hub.LeaveRoom(s.id, msg.Room)
-				close(s.send)
-				// find room, leave it, send message "Client Name left room"
-				// destroy link between client and room
-			case domain.Send:
-				log.Println("[session] reader: send")
-				s.hub.PushMessage(msg.Room, msg.Content, msg.Time)
-				// find room, send message
-			default:
-				log.Panic("incorrect domain message type", wsMsgType)
-			}
+			s.sendMessage(msg)
 		}
 	}
 }
@@ -114,6 +88,7 @@ func (s *ChatSession) writer() {
 		case <-s.stop:
 			log.Println("Session is stopped")
 			return
+
 		default:
 			bts, err := json.Marshal(<-s.send)
 			if err != nil {
@@ -126,6 +101,38 @@ func (s *ChatSession) writer() {
 				log.Println("write:", err)
 				return
 			}
+		}
+	}
+}
+
+func (s *ChatSession) sendMessage(msg domain.Message) {
+	switch msg.Type {
+	case domain.Join:
+		if s.activeRoom == msg.Room {
+			return
+		}
+
+		log.Println("[session] reader: join", msg.Room)
+		s.activeRoom = msg.Room
+		s.hub.JoinRoom(s.id, msg.Room, s.send)
+
+	case domain.Leave:
+		log.Println("[session] reader: leave")
+
+		err := s.hub.LeaveRoom(s.id, msg.Room)
+		if err != nil {
+			log.Println(err, msg.Room)
+			return
+		}
+
+		close(s.send)
+
+	case domain.Send:
+		log.Println("[session] reader: send")
+
+		err := s.hub.PushMessage(msg.Room, msg.Content, msg.Time)
+		if err != nil {
+			log.Println(err, msg.Room)
 		}
 	}
 }
