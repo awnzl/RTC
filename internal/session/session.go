@@ -77,7 +77,7 @@ func (s *ChatSession) reader() {
 				continue
 			}
 
-			s.sendMessage(msg)
+			s.pushMessage(msg)
 		}
 	}
 }
@@ -105,7 +105,7 @@ func (s *ChatSession) writer() {
 	}
 }
 
-func (s *ChatSession) sendMessage(msg domain.Message) {
+func (s *ChatSession) pushMessage(msg domain.Message) {
 	switch msg.Type {
 	case domain.Join:
 		if s.activeRoom == msg.Room {

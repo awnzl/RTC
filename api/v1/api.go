@@ -28,8 +28,8 @@ func New(sm *session.Service) *API {
 }
 
 func (a *API) RegisterHandlers() {
-	http.HandleFunc("/status", a.status)
-	http.HandleFunc("/ws", a.serveWS)
+	http.HandleFunc("/v1/status", a.status)
+	http.HandleFunc("/v1/ws", a.serveWS)
 }
 
 func (a *API) status(w http.ResponseWriter, r *http.Request) {
